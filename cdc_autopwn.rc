@@ -1,0 +1,37 @@
+# Author @TheToddLuci0
+# https://github.com/TheToddLuci0
+
+<ruby>
+require 'resolv'
+
+puts
+puts "************************"
+puts "Aquiring Targets"
+puts "************************"
+puts
+
+s_uri = URI("https://iscore.iseage.org/api/v1/services")
+services = Net::HTTP.get(s_uri)
+services = JSON.parse(services)
+
+dns_names = Array.new
+
+services.each do |serv|
+  nums = 1..40
+  nums.each do |n|
+    # ip = Resolv.getaddress(serv["url"].gsub("{num}", n.to_s))
+    # framework.db.report_host(host: ip)
+    dns_names.append(serv["url"].gsub("{num}", n.to_s))
+  end
+end
+
+puts
+puts "************************"
+puts "Running db_nmap"
+puts "************************"
+puts
+
+run_single('db_nmap -O -T5 ' + dns_names.join(' '))
+
+
+</ruby>
