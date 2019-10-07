@@ -76,8 +76,10 @@ run_single("use auxiliary/scanner/ssh/ssh_login")
 run_single("set DB_ALL_PASS true")
 run_single("set DB_ALL_USERS true")
 run_single("set BLANK_PASSWORDS true")
-run_single("set RHOSTS " + ssh_targets.join(' '))
-run_single("run -j -q") # Run this in the background, and do it quietly
+ssh_targets.each do |target|
+  run_single("set RHOSTS " + target)
+  run_single("run -j -q") # Run this in the background, and do it quietly
+end
 # TODO: Consider adding automated post connection stuff, ie persistance, flag nabbing
 
 puts
