@@ -76,10 +76,8 @@ run_single("use auxiliary/scanner/ssh/ssh_login")
 run_single("set DB_ALL_PASS true")
 run_single("set DB_ALL_USERS true")
 run_single("set BLANK_PASSWORDS true")
-ssh_targets.each do |target|
-  run_single("set RHOSTS " + target)
-  run_single("run -j -q") # Run this in the background, and do it quietly
-end
+run_single("set RHOSTS " + ssh_targets.join(','))
+run_single("run -j -q") # Run this in the background, and do it quietly
 # TODO: Consider adding automated post connection stuff, ie persistance, flag nabbing
 
 puts
@@ -90,7 +88,7 @@ puts
 
 # Let's load the database with some more actionable information about all the CDC hosts
 # Using the flags we are so as to make this take less than the whole eight hours
-run_single('db_nmap -O -T5 ' + dns_names.join(' '))
+run_single('db_nmap -A -T5 --top-ports 100 ' + dns_names.join(' '))
 
 </ruby>
 
